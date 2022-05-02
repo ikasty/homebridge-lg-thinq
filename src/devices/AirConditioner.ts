@@ -27,6 +27,7 @@ export default class AirConditioner extends baseDevice {
 
   protected jetModeModels = ['RAC_056905_CA', 'RAC_056905_WW'];
   protected airPurifierModels = ['PAC_910604_WW'];
+  protected airPurifierModelsAlter = ['RAC_056905_WW'];
   protected currentTargetState;
 
   constructor(
@@ -100,6 +101,12 @@ export default class AirConditioner extends baseDevice {
       this.serviceSwitch2.updateCharacteristic(platform.Characteristic.Name, 'Air Purifier Mode');
       this.serviceSwitch2.getCharacteristic(platform.Characteristic.On)
         .onSet(this.setAirPurifierActive.bind(this));
+    } else if (this.isAirPurifierSupportedAlter(device)) {
+      this.serviceSwitch2 = accessory.getService('Air Purifier Mode')
+        || accessory.addService(Switch, 'Air Purifier Mode', 'Air Purifier Mode');
+      this.serviceSwitch2.updateCharacteristic(platform.Characteristic.Name, 'Air Purifier Mode');
+      this.serviceSwitch2.getCharacteristic(platform.Characteristic.On)
+        .onSet(this.setAirPurifierActiveAlter.bind(this));
     }
 
     if (this.config.ac_fan_control as boolean) {
@@ -146,6 +153,10 @@ export default class AirConditioner extends baseDevice {
 
   async setAirPurifierActive(value: CharacteristicValue) {
     await this.setOpMode(value ? 5 : 0);
+  }
+
+  async setAirPurifierActiveAlter(value: CharacteristicValue) {
+    await this.setOpMode(value ? 32 : 0);
   }
 
   async setJetModeActive(value: CharacteristicValue) {
@@ -215,8 +226,8 @@ export default class AirConditioner extends baseDevice {
       } else {
         this.service.updateCharacteristic(Characteristic.CurrentHeaterCoolerState, Characteristic.CurrentHeaterCoolerState.COOLING);
       }
-    } else if ([5].includes(this.Status.opMode)) {
-      // another mode
+    } else if ([5, 32].includes(this.Status.opMode)) {
+      // air conditioner mode
     } else {
       this.platform.log.warn('Unsupported value opMode = ', this.Status.opMode);
     }
@@ -280,6 +291,10 @@ export default class AirConditioner extends baseDevice {
 
     if (this.isAirPurifierSupported(device) && this.serviceSwitch2) {
       this.serviceSwitch2.updateCharacteristic(Characteristic.On, this.Status.opMode === 5);
+    }
+
+    if (this.isAirPurifierSupportedAlter(device) && this.serviceSwitch2) {
+      this.serviceSwitch2.updateCharacteristic(Characteristic.On, this.Status.opMode === 32);
     }
 
     // auto mode
@@ -435,6 +450,10 @@ export default class AirConditioner extends baseDevice {
 
   protected isAirPurifierSupported(device: Device) {
     return this.airPurifierModels.includes(device.model);
+  }
+
+  protected isAirPurifierSupportedAlter(device: Device) {
+    return this.airPurifierModelsAlter.includes(device.model);
   }
 
   protected createFanService() {

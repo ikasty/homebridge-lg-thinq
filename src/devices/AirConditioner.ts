@@ -19,9 +19,9 @@ export default class AirConditioner extends baseDevice {
   protected serviceHumiditySensor;
   protected serviceLight;
   protected serviceFanV2;
-  protected serviceAutoMode;
 
   // more feature
+  protected serviceAutoMode;
   protected serviceSwitch; // jet mode
   protected serviceSwitch2; // air purification
 
@@ -115,24 +115,26 @@ export default class AirConditioner extends baseDevice {
       accessory.removeService(this.serviceFanV2);
     }
 
-    this.serviceAutoMode = accessory.getService(Switch) || accessory.addService(Switch, 'Auto Mode');
-    this.serviceAutoMode.addLinkedService(this.service);
-    this.serviceAutoMode.updateCharacteristic(platform.Characteristic.Name, 'Auto Mode');
-    this.serviceAutoMode.getCharacteristic(platform.Characteristic.On)
-      .onSet(async (value: CharacteristicValue) => {
-        if (value as boolean) {
-          if (this.Status.opMode !== 6) {
-            await this.setOpMode(6).then(() => {
-              device.data.snapshot['airState.opMode'] = 6;
-              this.updateAccessoryCharacteristic(device);
-            });
+    if (this.config.ac_auto_mode as boolean) {
+      this.serviceAutoMode = accessory.getService(Switch) || accessory.addService(Switch, 'Auto Mode');
+      this.serviceAutoMode.addLinkedService(this.service);
+      this.serviceAutoMode.updateCharacteristic(platform.Characteristic.Name, 'Auto Mode');
+      this.serviceAutoMode.getCharacteristic(platform.Characteristic.On)
+        .onSet(async (value: CharacteristicValue) => {
+          if (value as boolean) {
+            if (this.Status.opMode !== 6) {
+              await this.setOpMode(6).then(() => {
+                device.data.snapshot['airState.opMode'] = 6;
+                this.updateAccessoryCharacteristic(device);
+              });
+            }
+          } else {
+            device.data.snapshot['airState.opMode'] = -1;
+            this.updateAccessoryCharacteristic(device);
+            await this.setTargetState(this.currentTargetState);
           }
-        } else {
-          device.data.snapshot['airState.opMode'] = -1;
-          this.updateAccessoryCharacteristic(device);
-          await this.setTargetState(this.currentTargetState);
-        }
-      });
+        });
+    }
   }
 
   public get config() {
@@ -143,6 +145,7 @@ export default class AirConditioner extends baseDevice {
       ac_temperature_sensor: false,
       ac_humidity_sensor: false,
       ac_led_control: false,
+      ac_auto_mode: true,
       ac_fan_control: false,
     }, super.config);
   }
@@ -298,7 +301,9 @@ export default class AirConditioner extends baseDevice {
     }
 
     // auto mode
-    this.serviceAutoMode.updateCharacteristic(Characteristic.On, this.Status.opMode === 6);
+    if (this.config?.ac_auto_mode as boolean && this.serviceAutoMode) {
+      this.serviceAutoMode.updateCharacteristic(Characteristic.On, this.Status.opMode === 6);
+    }
   }
 
   async setLight(value: CharacteristicValue) {

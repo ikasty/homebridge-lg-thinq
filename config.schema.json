@@ -180,6 +180,11 @@
             "title": "Enable led panel control",
             "type": "boolean"
           },
+          "ac_auto_mode": {
+            "title": "Enable AC auto mode",
+            "type": "boolean",
+            "default": true
+          },
           "ac_fan_control": {
             "title": "Enable separate fan control",
             "type": "boolean"
@@ -264,6 +269,7 @@
                 "devices[].ac_swing_mode",
                 "devices[].ac_temperature_sensor",
                 "devices[].ac_humidity_sensor",
+                "devices[].ac_auto_mode",
                 "devices[].ac_fan_control"
               ],
               "condition": {
